@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from bitcraft_tool_priority_tracker import (
+    _format_http_error_details,
     build_priority_report,
     load_snapshot,
     save_snapshot,
@@ -66,6 +67,22 @@ class PriorityReportTests(unittest.TestCase):
             save_snapshot(path, payload)
             loaded = load_snapshot(path)
             self.assertEqual(json.dumps(payload, sort_keys=True), json.dumps(loaded, sort_keys=True))
+
+    def test_cloudflare_error_details_are_summarized(self):
+        html = """
+        <!doctype html>
+        <html>
+          <head><title>Access denied | bitjita.com used Cloudflare to restrict access</title></head>
+          <body>
+            <h1>Error 1010</h1>
+            <p>The owner of this website has banned your access.</p>
+          </body>
+        </html>
+        """
+        details = _format_http_error_details(html)
+        self.assertIn("Cloudflare", details)
+        self.assertIn("Error 1010", details)
+        self.assertIn("blocking", details)
 
 
 if __name__ == "__main__":
