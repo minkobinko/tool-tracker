@@ -1,6 +1,8 @@
 import json
 import tempfile
 import unittest
+import urllib.request
+from unittest import mock
 from pathlib import Path
 
 from bitcraft_tool_priority_tracker import (
@@ -83,6 +85,37 @@ class PriorityReportTests(unittest.TestCase):
         self.assertIn("Cloudflare", details)
         self.assertIn("Error 1010", details)
         self.assertIn("blocking", details)
+
+
+class ClientHeaderTests(unittest.TestCase):
+    def test_request_json_sends_identifier_headers(self):
+        from bitcraft_tool_priority_tracker import BitjitaClient
+
+        client = BitjitaClient(
+            base_url="https://bitjita.com/api",
+            api_key=None,
+            claim_members_endpoint="/claims/{claim_id}/players",
+            player_tools_endpoint="/players/{player_id}/tools",
+            player_professions_endpoint="/players/{player_id}/professions",
+            timeout=5,
+            app_identifier="BitJita (xcausxn)",
+        )
+
+        class _Resp:
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+            def read(self):
+                return b"{}"
+
+        with mock.patch("urllib.request.urlopen", return_value=_Resp()) as mocked:
+            client._request_json("https://bitjita.com/api/ping")
+
+        req = mocked.call_args[0][0]
+        self.assertIsInstance(req, urllib.request.Request)
+        self.assertEqual(req.get_header("User-agent"), "BitJita (xcausxn)")
+        self.assertEqual(req.get_header("X-app-identifier"), "BitJita (xcausxn)")
 
 
 if __name__ == "__main__":

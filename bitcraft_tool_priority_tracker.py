@@ -57,6 +57,7 @@ class BitjitaClient:
         player_tools_endpoint: str,
         player_professions_endpoint: str,
         timeout: int,
+        app_identifier: str | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
@@ -64,13 +65,18 @@ class BitjitaClient:
         self.player_tools_endpoint = player_tools_endpoint
         self.player_professions_endpoint = player_professions_endpoint
         self.timeout = timeout
+        self.app_identifier = app_identifier or "Bitcraft Tool Priority Tracker"
 
     def _url(self, endpoint_template: str, **kwargs: str) -> str:
         endpoint = endpoint_template.format(**kwargs).lstrip("/")
         return f"{self.base_url}/{endpoint}"
 
     def _request_json(self, url: str) -> Any:
-        headers = {"Accept": "application/json"}
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": self.app_identifier,
+            "x-app-identifier": self.app_identifier,
+        }
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
@@ -308,6 +314,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--player-tools-endpoint", default="/players/{player_id}/tools")
     parser.add_argument("--player-professions-endpoint", default="/players/{player_id}/professions")
     parser.add_argument("--timeout", type=int, default=20)
+    parser.add_argument(
+        "--app-identifier",
+        default="Bitcraft Tool Priority Tracker",
+        help="Identifier sent to Bitjita in User-Agent and x-app-identifier headers",
+    )
 
     parser.add_argument(
         "--snapshot-out",
@@ -346,6 +357,7 @@ def main() -> int:
         player_tools_endpoint=args.player_tools_endpoint,
         player_professions_endpoint=args.player_professions_endpoint,
         timeout=args.timeout,
+        app_identifier=args.app_identifier,
     )
 
     current_snapshot = build_snapshot(client, args.claim_id)

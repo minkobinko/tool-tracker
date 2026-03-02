@@ -22,6 +22,7 @@
     <label>Claim ID <input id="claimId" placeholder="claim-123" /></label>
     <label>API key (optional) <input id="apiKey" type="password" /></label>
     <label>API base URL <input id="apiBaseUrl" value="https://bitjita.com/api" /></label>
+    <label>App identifier header <input id="appIdentifier" value="Bitcraft Tool Priority Tracker" /></label>
     <label>Top active professions <input id="topProfessions" type="number" value="3" min="1" /></label>
     <label>Historical snapshot JSON (optional, paste previous snapshot file)</label>
     <textarea id="historical" rows="8" placeholder='{"claim_id": "...", "players": [...]}'></textarea>
@@ -62,6 +63,7 @@
         claim_id: document.getElementById('claimId').value.trim(),
         api_key: document.getElementById('apiKey').value.trim() || null,
         api_base_url: document.getElementById('apiBaseUrl').value.trim(),
+        app_identifier: document.getElementById('appIdentifier').value.trim() || 'Bitcraft Tool Priority Tracker',
         top_professions: Number(document.getElementById('topProfessions').value || '3'),
         historical_snapshot: historical,
       };

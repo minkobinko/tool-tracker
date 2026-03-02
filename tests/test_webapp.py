@@ -33,3 +33,13 @@ class ServerBindTests(unittest.TestCase):
         with mock.patch("webapp.ThreadingHTTPServer", side_effect=err):
             with self.assertRaises(RuntimeError):
                 _try_bind_server("127.0.0.1", [8000, 8080])
+
+
+    def test_build_tracker_response_passes_app_identifier(self):
+        payload = {"claim_id": "c1", "app_identifier": "BitJita (xcausxn)"}
+
+        with mock.patch("webapp.build_snapshot", return_value={"players": []}) as build_snapshot_mock:
+            build_tracker_response(payload)
+
+        client = build_snapshot_mock.call_args[0][0]
+        self.assertEqual(client.app_identifier, "BitJita (xcausxn)")
