@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bitcraft Tool Priority Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #0f172a; color: #e2e8f0; }
+    .card { background: #1e293b; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+    label { display: block; margin-top: .5rem; font-weight: 600; }
+    input, textarea { width: 100%; margin-top: .25rem; padding: .5rem; border-radius: 6px; border: 1px solid #334155; background: #0b1220; color: #e2e8f0; }
+    button { margin-top: 1rem; padding: .6rem 1rem; border: none; border-radius: 6px; background: #22c55e; color: #052e16; font-weight: 700; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border-bottom: 1px solid #334155; padding: .5rem; text-align: left; }
+    pre { white-space: pre-wrap; background: #0b1220; padding: 1rem; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Bitcraft Tool Upgrade Priority Tracker</h1>
+
+  <div class="card">
+    <label>Claim ID <input id="claimId" placeholder="claim-123" /></label>
+    <label>API key (optional) <input id="apiKey" type="password" /></label>
+    <label>API base URL <input id="apiBaseUrl" value="https://bitjita.com/api" /></label>
+    <label>Top active professions <input id="topProfessions" type="number" value="3" min="1" /></label>
+    <label>Historical snapshot JSON (optional, paste previous snapshot file)</label>
+    <textarea id="historical" rows="8" placeholder='{"claim_id": "...", "players": [...]}'></textarea>
+    <button id="runBtn">Run Tracking</button>
+  </div>
+
+  <div class="card">
+    <h2>Priority Report</h2>
+    <div id="report"></div>
+  </div>
+
+  <div class="card">
+    <h2>Current Snapshot JSON</h2>
+    <pre id="snapshot"></pre>
+  </div>
+
+  <script>
+    const runBtn = document.getElementById('runBtn');
+    const reportEl = document.getElementById('report');
+    const snapshotEl = document.getElementById('snapshot');
+
+    runBtn.addEventListener('click', async () => {
+      reportEl.innerHTML = 'Loading...';
+      snapshotEl.textContent = '';
+
+      let historical = null;
+      const rawHistorical = document.getElementById('historical').value.trim();
+      if (rawHistorical) {
+        try {
+          historical = JSON.parse(rawHistorical);
+        } catch (e) {
+          reportEl.textContent = 'Historical snapshot JSON is invalid.';
+          return;
+        }
+      }
+
+      const payload = {
+        claim_id: document.getElementById('claimId').value.trim(),
+        api_key: document.getElementById('apiKey').value.trim() || null,
+        api_base_url: document.getElementById('apiBaseUrl').value.trim(),
+        top_professions: Number(document.getElementById('topProfessions').value || '3'),
+        historical_snapshot: historical,
+      };
+
+      const res = await fetch('/api/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        reportEl.textContent = data.error || 'Request failed';
+        return;
+      }
+
+      snapshotEl.textContent = JSON.stringify(data.current_snapshot, null, 2);
+
+      if (!data.report) {
+        reportEl.textContent = 'No historical snapshot supplied, so no priority report was generated.';
+        return;
+      }
+
+      const rows = data.report;
+      const table = document.createElement('table');
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>Priority</th><th>Player</th><th>XP Gain</th><th>Active Professions</th><th>Suggested Tools</th>
+          </tr>
+        </thead>
+      `;
+      const tbody = document.createElement('tbody');
+      for (const row of rows) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.priority_rank}</td>
+          <td>${row.player_name}</td>
+          <td>${row.xp_gain_total}</td>
+          <td>${(row.active_professions || []).join(', ') || 'none'}</td>
+          <td>${(row.suggested_tools || []).join(', ') || 'none'}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+      reportEl.innerHTML = '';
+      reportEl.appendChild(table);
+    });
+  </script>
+</body>
+</html>
