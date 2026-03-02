@@ -35,6 +35,11 @@
   </div>
 
   <div class="card">
+    <h2>Players & Tools</h2>
+    <div id="playersTools"></div>
+  </div>
+
+  <div class="card">
     <h2>Current Snapshot JSON</h2>
     <pre id="snapshot"></pre>
   </div>
@@ -42,10 +47,12 @@
   <script>
     const runBtn = document.getElementById('runBtn');
     const reportEl = document.getElementById('report');
+    const playersToolsEl = document.getElementById('playersTools');
     const snapshotEl = document.getElementById('snapshot');
 
     runBtn.addEventListener('click', async () => {
       reportEl.innerHTML = 'Loading...';
+      playersToolsEl.innerHTML = '';
       snapshotEl.textContent = '';
 
       let historical = null;
@@ -88,8 +95,41 @@
 
       snapshotEl.textContent = JSON.stringify(data.current_snapshot, null, 2);
 
+      const players = (data.current_snapshot && Array.isArray(data.current_snapshot.players))
+        ? data.current_snapshot.players
+        : [];
+
+      if (!players.length) {
+        playersToolsEl.textContent = 'No players found in current snapshot.';
+      } else {
+        const playersTable = document.createElement('table');
+        const playersHead = document.createElement('thead');
+        playersHead.innerHTML = '<tr><th>Player</th><th>Tools</th></tr>';
+        playersTable.appendChild(playersHead);
+        const playersBody = document.createElement('tbody');
+
+        for (const player of players) {
+          const tr = document.createElement('tr');
+
+          const playerNameTd = document.createElement('td');
+          playerNameTd.textContent = String(player.name || player.player_id || 'unknown');
+          tr.appendChild(playerNameTd);
+
+          const toolsTd = document.createElement('td');
+          const tools = Array.isArray(player.tools) ? player.tools : [];
+          toolsTd.textContent = tools.length ? tools.join(', ') : 'none';
+          tr.appendChild(toolsTd);
+
+          playersBody.appendChild(tr);
+        }
+
+        playersTable.appendChild(playersBody);
+        playersToolsEl.innerHTML = '';
+        playersToolsEl.appendChild(playersTable);
+      }
+
       if (!data.report) {
-        reportEl.textContent = 'No historical snapshot supplied, so no priority report was generated.';
+        reportEl.textContent = 'No historical snapshot supplied, so no priority report was generated. Current players and tools are shown above.';
         return;
       }
 
