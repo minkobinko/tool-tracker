@@ -68,12 +68,18 @@
         historical_snapshot: historical,
       };
 
-      const res = await fetch('/api/track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
+      let res, data;
+      try {
+        res = await fetch('/api/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        data = await res.json();
+      } catch (e) {
+        reportEl.textContent = 'Network error: ' + e.message;
+        return;
+      }
 
       if (!res.ok) {
         reportEl.textContent = data.error || 'Request failed';
@@ -89,23 +95,24 @@
 
       const rows = data.report;
       const table = document.createElement('table');
-      table.innerHTML = `
-        <thead>
-          <tr>
-            <th>Priority</th><th>Player</th><th>XP Gain</th><th>Active Professions</th><th>Suggested Tools</th>
-          </tr>
-        </thead>
-      `;
+      const thead = document.createElement('thead');
+      thead.innerHTML = '<tr><th>Priority</th><th>Player</th><th>XP Gain</th><th>Active Professions</th><th>Suggested Tools</th></tr>';
+      table.appendChild(thead);
       const tbody = document.createElement('tbody');
       for (const row of rows) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${row.priority_rank}</td>
-          <td>${row.player_name}</td>
-          <td>${row.xp_gain_total}</td>
-          <td>${(row.active_professions || []).join(', ') || 'none'}</td>
-          <td>${(row.suggested_tools || []).join(', ') || 'none'}</td>
-        `;
+        const cells = [
+          String(row.priority_rank),
+          String(row.player_name),
+          String(row.xp_gain_total),
+          (row.active_professions || []).join(', ') || 'none',
+          (row.suggested_tools || []).join(', ') || 'none',
+        ];
+        for (const text of cells) {
+          const td = document.createElement('td');
+          td.textContent = text;
+          tr.appendChild(td);
+        }
         tbody.appendChild(tr);
       }
       table.appendChild(tbody);
