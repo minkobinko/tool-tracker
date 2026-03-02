@@ -33,7 +33,7 @@ Then open: <http://localhost:8000>
 
 The tracker is preconfigured for the documented Bitjita API behavior:
 
-- Base URL: `https://bitjita.com/api`
+- Base URL: `https://bitjita.com`
 - JSON responses for `/api/*` endpoints
 - Public endpoints (API key optional)
 - Sends both `User-Agent` and `x-app-identifier` headers (default: `Bitcraft Tool Priority Tracker`)
@@ -42,9 +42,9 @@ The tracker is preconfigured for the documented Bitjita API behavior:
 
 Default endpoints used by the backend logic:
 
-- `/claims/{claim_id}/players`
-- `/players/{player_id}/tools`
-- `/players/{player_id}/professions`
+- `/api/claims/{claim_id}/members`
+- `/api/players/{player_id}/equipment`
+- `/api/players/{player_id}/crafts`
 
 If your Bitjita deployment uses different endpoint shapes, update defaults inside `webapp.py` or reuse the existing CLI in `bitcraft_tool_priority_tracker.py` with endpoint override flags.
 

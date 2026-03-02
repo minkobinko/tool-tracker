@@ -22,11 +22,11 @@ def build_tracker_response(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("claim_id is required")
 
     client = BitjitaClient(
-        base_url=str(payload.get("api_base_url") or "https://bitjita.com/api"),
+        base_url=str(payload.get("api_base_url") or "https://bitjita.com"),
         api_key=(payload.get("api_key") or None),
-        claim_members_endpoint=str(payload.get("claim_members_endpoint") or "/claims/{claim_id}/players"),
-        player_tools_endpoint=str(payload.get("player_tools_endpoint") or "/players/{player_id}/tools"),
-        player_professions_endpoint=str(payload.get("player_professions_endpoint") or "/players/{player_id}/professions"),
+        claim_members_endpoint=str(payload.get("claim_members_endpoint") or "/api/claims/{claim_id}/members"),
+        player_tools_endpoint=str(payload.get("player_tools_endpoint") or "/api/players/{player_id}/equipment"),
+        player_professions_endpoint=str(payload.get("player_professions_endpoint") or "/api/players/{player_id}/crafts"),
         timeout=int(payload.get("timeout") or 20),
         app_identifier=str(payload.get("app_identifier") or "Bitcraft Tool Priority Tracker"),
     )
