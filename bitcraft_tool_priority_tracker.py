@@ -219,21 +219,40 @@ def build_snapshot(client: BitjitaClient, claim_id: str) -> dict[str, Any]:
         player_obj = raw.get("player") if isinstance(raw.get("player"), dict) else {}
         player_id = _first_string_value(
             raw,
-            ["id", "player_id", "playerId", "character_id", "characterId", "uuid"],
+            [
+                "id",
+                "player_id",
+                "playerId",
+                "playerEntityId",
+                "character_id",
+                "characterId",
+                "uuid",
+            ],
         ) or _first_string_value(
             player_obj,
-            ["id", "player_id", "playerId", "character_id", "characterId", "uuid"],
+            [
+                "id",
+                "player_id",
+                "playerId",
+                "playerEntityId",
+                "character_id",
+                "characterId",
+                "uuid",
+            ],
         )
         if not player_id:
             continue
         name = _first_string_value(
             raw,
-            ["name", "username", "display_name", "displayName"],
+            ["name", "username", "userName", "display_name", "displayName"],
         ) or _first_string_value(
             player_obj,
-            ["name", "username", "display_name", "displayName"],
+            ["name", "username", "userName", "display_name", "displayName"],
         ) or player_id
-        professions = client.get_player_professions(player_id)
+        try:
+            professions = client.get_player_professions(player_id)
+        except ValueError:
+            professions = {}
         tools = client.get_player_tools(player_id)
         snapshot_players.append(
             {

@@ -182,6 +182,66 @@ class ResponseParsingTests(unittest.TestCase):
         self.assertEqual(snapshot['players'][0]['name'], 'Bob')
         self.assertEqual(snapshot['players'][0]['professions']['mining'], 15.0)
 
+    def test_build_snapshot_supports_bitjita_member_field_names(self):
+        from bitcraft_tool_priority_tracker import BitjitaClient, build_snapshot
+
+        client = BitjitaClient(
+            base_url="https://bitjita.com",
+            api_key=None,
+            claim_members_endpoint="/api/claims/{claim_id}/members",
+            player_tools_endpoint="/api/players/{player_id}/equipment",
+            player_professions_endpoint="/api/players/{player_id}/crafts",
+            timeout=5,
+        )
+
+        def fake_request(url: str):
+            if url.endswith('/api/claims/c1/members'):
+                return {
+                    "members": [
+                        {"playerEntityId": "p3", "userName": "Caro"}
+                    ]
+                }
+            if url.endswith('/api/players/p3/crafts'):
+                return {"data": {"mining": 99}}
+            if url.endswith('/api/players/p3/equipment'):
+                return {"data": [{"name": "Pickaxe"}]}
+            return {}
+
+        with mock.patch.object(client, '_request_json', side_effect=fake_request):
+            snapshot = build_snapshot(client, 'c1')
+
+        self.assertEqual(snapshot['players'][0]['player_id'], 'p3')
+        self.assertEqual(snapshot['players'][0]['name'], 'Caro')
+        self.assertEqual(snapshot['players'][0]['professions']['mining'], 99.0)
+
+    def test_build_snapshot_keeps_player_when_professions_missing(self):
+        from bitcraft_tool_priority_tracker import BitjitaClient, build_snapshot
+
+        client = BitjitaClient(
+            base_url="https://bitjita.com",
+            api_key=None,
+            claim_members_endpoint="/api/claims/{claim_id}/members",
+            player_tools_endpoint="/api/players/{player_id}/equipment",
+            player_professions_endpoint="/api/players/{player_id}/crafts",
+            timeout=5,
+        )
+
+        def fake_request(url: str):
+            if url.endswith('/api/claims/c1/members'):
+                return {"members": [{"playerEntityId": "p4", "userName": "Dora"}]}
+            if url.endswith('/api/players/p4/crafts'):
+                return {"craftResults": []}
+            if url.endswith('/api/players/p4/equipment'):
+                return {"equipment": []}
+            return {}
+
+        with mock.patch.object(client, '_request_json', side_effect=fake_request):
+            snapshot = build_snapshot(client, 'c1')
+
+        self.assertEqual(snapshot['players'][0]['player_id'], 'p4')
+        self.assertEqual(snapshot['players'][0]['name'], 'Dora')
+        self.assertEqual(snapshot['players'][0]['professions'], {})
+
 
 
 if __name__ == "__main__":
