@@ -106,7 +106,15 @@ class BitjitaClient:
             if isinstance(item, str):
                 tool_names.append(item)
             elif isinstance(item, dict):
-                name = item.get("name") or item.get("toolName") or item.get("item_name")
+                nested_item = item.get("item") if isinstance(item.get("item"), dict) else {}
+                name = (
+                    item.get("name")
+                    or item.get("toolName")
+                    or item.get("item_name")
+                    or item.get("itemName")
+                    or nested_item.get("name")
+                    or nested_item.get("item_name")
+                )
                 if name:
                     tool_names.append(str(name))
         return sorted(set(tool_names))
@@ -128,8 +136,20 @@ class BitjitaClient:
         for entry in entries:
             if not isinstance(entry, dict):
                 continue
-            name = entry.get("name") or entry.get("profession") or entry.get("skill")
-            xp_value = entry.get("xp") or entry.get("exp") or entry.get("experience")
+            name = (
+                entry.get("name")
+                or entry.get("profession")
+                or entry.get("skill")
+                or entry.get("craft")
+                or entry.get("craftName")
+            )
+            xp_value = (
+                entry.get("xp")
+                or entry.get("exp")
+                or entry.get("experience")
+                or entry.get("total_xp")
+                or entry.get("totalExperience")
+            )
             if name and isinstance(xp_value, (int, float)):
                 parsed[str(name)] = float(xp_value)
 
@@ -182,10 +202,25 @@ def build_snapshot(client: BitjitaClient, claim_id: str) -> dict[str, Any]:
 
     snapshot_players: list[dict[str, Any]] = []
     for raw in players_raw:
-        player_id = str(raw.get("id") or raw.get("player_id") or raw.get("uuid") or "")
+        player_obj = raw.get("player") if isinstance(raw, dict) and isinstance(raw.get("player"), dict) else {}
+        player_id = str(
+            raw.get("id")
+            or raw.get("player_id")
+            or raw.get("uuid")
+            or player_obj.get("id")
+            or player_obj.get("player_id")
+            or player_obj.get("uuid")
+            or ""
+        )
         if not player_id:
             continue
-        name = str(raw.get("name") or raw.get("username") or player_id)
+        name = str(
+            raw.get("name")
+            or raw.get("username")
+            or player_obj.get("name")
+            or player_obj.get("username")
+            or player_id
+        )
         professions = client.get_player_professions(player_id)
         tools = client.get_player_tools(player_id)
         snapshot_players.append(
@@ -200,7 +235,7 @@ def build_snapshot(client: BitjitaClient, claim_id: str) -> dict[str, Any]:
 
     return {
         "claim_id": claim_id,
-        "captured_at": dt.datetime.now(dt.UTC).isoformat(),
+        "captured_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "players": snapshot_players,
     }
 
@@ -308,11 +343,11 @@ def print_report(rows: list[dict[str, Any]]) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Bitcraft tool upgrade priority tracker")
     parser.add_argument("claim_id", help="Claim identifier to track")
-    parser.add_argument("--api-base-url", default="https://bitjita.com/api")
+    parser.add_argument("--api-base-url", default="https://bitjita.com")
     parser.add_argument("--api-key", default=None, help="Bearer token for API authentication")
-    parser.add_argument("--claim-members-endpoint", default="/claims/{claim_id}/players")
-    parser.add_argument("--player-tools-endpoint", default="/players/{player_id}/tools")
-    parser.add_argument("--player-professions-endpoint", default="/players/{player_id}/professions")
+    parser.add_argument("--claim-members-endpoint", default="/api/claims/{claim_id}/members")
+    parser.add_argument("--player-tools-endpoint", default="/api/players/{player_id}/equipment")
+    parser.add_argument("--player-professions-endpoint", default="/api/players/{player_id}/crafts")
     parser.add_argument("--timeout", type=int, default=20)
     parser.add_argument(
         "--app-identifier",

@@ -92,11 +92,11 @@ class ClientHeaderTests(unittest.TestCase):
         from bitcraft_tool_priority_tracker import BitjitaClient
 
         client = BitjitaClient(
-            base_url="https://bitjita.com/api",
+            base_url="https://bitjita.com",
             api_key=None,
-            claim_members_endpoint="/claims/{claim_id}/players",
-            player_tools_endpoint="/players/{player_id}/tools",
-            player_professions_endpoint="/players/{player_id}/professions",
+            claim_members_endpoint="/api/claims/{claim_id}/members",
+            player_tools_endpoint="/api/players/{player_id}/equipment",
+            player_professions_endpoint="/api/players/{player_id}/crafts",
             timeout=5,
             app_identifier="BitJita (xcausxn)",
         )
@@ -116,6 +116,37 @@ class ClientHeaderTests(unittest.TestCase):
         self.assertIsInstance(req, urllib.request.Request)
         self.assertEqual(req.get_header("User-agent"), "BitJita (xcausxn)")
         self.assertEqual(req.get_header("X-app-identifier"), "BitJita (xcausxn)")
+
+
+class ResponseParsingTests(unittest.TestCase):
+    def test_build_snapshot_supports_nested_player_members(self):
+        from bitcraft_tool_priority_tracker import BitjitaClient, build_snapshot
+
+        client = BitjitaClient(
+            base_url="https://bitjita.com",
+            api_key=None,
+            claim_members_endpoint="/api/claims/{claim_id}/members",
+            player_tools_endpoint="/api/players/{player_id}/equipment",
+            player_professions_endpoint="/api/players/{player_id}/crafts",
+            timeout=5,
+        )
+
+        def fake_request(url: str):
+            if url.endswith('/api/claims/c1/members'):
+                return {"members": [{"player": {"id": "p1", "name": "Alice"}}]}
+            if url.endswith('/api/players/p1/crafts'):
+                return {"data": [{"craftName": "mining", "totalExperience": 42}]}
+            if url.endswith('/api/players/p1/equipment'):
+                return {"equipment": [{"item": {"name": "Pickaxe"}}]}
+            return {}
+
+        with mock.patch.object(client, '_request_json', side_effect=fake_request):
+            snapshot = build_snapshot(client, 'c1')
+
+        self.assertEqual(snapshot['players'][0]['player_id'], 'p1')
+        self.assertEqual(snapshot['players'][0]['name'], 'Alice')
+        self.assertEqual(snapshot['players'][0]['professions']['mining'], 42.0)
+        self.assertEqual(snapshot['players'][0]['tools'], ['Pickaxe'])
 
 
 if __name__ == "__main__":
