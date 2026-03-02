@@ -27,6 +27,7 @@ def build_tracker_response(payload: dict[str, Any]) -> dict[str, Any]:
         player_tools_endpoint=str(payload.get("player_tools_endpoint") or "/players/{player_id}/tools"),
         player_professions_endpoint=str(payload.get("player_professions_endpoint") or "/players/{player_id}/professions"),
         timeout=int(payload.get("timeout") or 20),
+        app_identifier=str(payload.get("app_identifier") or "Bitcraft Tool Priority Tracker"),
     )
 
     current_snapshot = build_snapshot(client, claim_id)

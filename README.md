@@ -24,9 +24,19 @@ Then open: <http://localhost:8000>
 
 1. Enter a claim ID.
 2. (Optional) Enter API key.
-3. (Optional) Paste a historical snapshot JSON in the text area.
-4. Click **Run Tracking**.
-5. View the generated priority table and current snapshot JSON.
+3. (Optional) Customize app identifier header value.
+4. (Optional) Paste a historical snapshot JSON in the text area.
+5. Click **Run Tracking**.
+6. View the generated priority table and current snapshot JSON.
+
+## Bitjita API defaults
+
+The tracker is preconfigured for the documented Bitjita API behavior:
+
+- Base URL: `https://bitjita.com/api`
+- JSON responses for `/api/*` endpoints
+- Public endpoints (API key optional)
+- Sends both `User-Agent` and `x-app-identifier` headers (default: `Bitcraft Tool Priority Tracker`)
 
 ## API assumptions
 
