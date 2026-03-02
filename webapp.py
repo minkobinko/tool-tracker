@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -89,9 +90,34 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
 
-def run(host: str = "0.0.0.0", port: int = 8000) -> None:
-    server = ThreadingHTTPServer((host, port), Handler)
-    print(f"Serving tracker website on http://{host}:{port}")
+def _try_bind_server(host: str, port_candidates: Iterable[int]) -> tuple[ThreadingHTTPServer, int]:
+    last_error: OSError | None = None
+    tried_ports: list[int] = []
+
+    for port in port_candidates:
+        tried_ports.append(port)
+        try:
+            return ThreadingHTTPServer((host, port), Handler), port
+        except PermissionError as exc:
+            last_error = exc
+        except OSError as exc:
+            if getattr(exc, "winerror", None) in {10013, 10048}:
+                last_error = exc
+                continue
+            raise
+
+    raise RuntimeError(f"Unable to bind web server on host {host} using ports: {tried_ports}") from last_error
+
+
+def run(host: str = "127.0.0.1", port: int = 8000) -> None:
+    server, bound_port = _try_bind_server(host, [port, 8080, 8765])
+    if bound_port != port:
+        print(
+            f"Port {port} was unavailable due to local socket permissions. "
+            f"Serving tracker website on http://{host}:{bound_port} instead."
+        )
+    else:
+        print(f"Serving tracker website on http://{host}:{bound_port}")
     server.serve_forever()
 
 
