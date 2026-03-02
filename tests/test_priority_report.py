@@ -148,6 +148,41 @@ class ResponseParsingTests(unittest.TestCase):
         self.assertEqual(snapshot['players'][0]['professions']['mining'], 42.0)
         self.assertEqual(snapshot['players'][0]['tools'], ['Pickaxe'])
 
+    def test_build_snapshot_supports_nested_members_payload_and_character_id(self):
+        from bitcraft_tool_priority_tracker import BitjitaClient, build_snapshot
+
+        client = BitjitaClient(
+            base_url="https://bitjita.com",
+            api_key=None,
+            claim_members_endpoint="/api/claims/{claim_id}/members",
+            player_tools_endpoint="/api/players/{player_id}/equipment",
+            player_professions_endpoint="/api/players/{player_id}/crafts",
+            timeout=5,
+        )
+
+        def fake_request(url: str):
+            if url.endswith('/api/claims/c1/members'):
+                return {
+                    "data": {
+                        "members": [
+                            {"characterId": "p2", "displayName": "Bob"}
+                        ]
+                    }
+                }
+            if url.endswith('/api/players/p2/crafts'):
+                return {"data": {"mining": 15}}
+            if url.endswith('/api/players/p2/equipment'):
+                return {"data": [{"name": "Pickaxe"}]}
+            return {}
+
+        with mock.patch.object(client, '_request_json', side_effect=fake_request):
+            snapshot = build_snapshot(client, 'c1')
+
+        self.assertEqual(snapshot['players'][0]['player_id'], 'p2')
+        self.assertEqual(snapshot['players'][0]['name'], 'Bob')
+        self.assertEqual(snapshot['players'][0]['professions']['mining'], 15.0)
+
+
 
 if __name__ == "__main__":
     unittest.main()

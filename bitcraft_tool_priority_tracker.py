@@ -161,13 +161,24 @@ class BitjitaClient:
 def _extract_list(data: Any, keys: list[str]) -> list[Any]:
     if isinstance(data, list):
         return data
-    if not isinstance(data, dict):
-        return []
-    for key in keys:
-        value = data.get(key)
-        if isinstance(value, list):
-            return value
+    if isinstance(data, dict):
+        for key in keys:
+            value = data.get(key)
+            if isinstance(value, list):
+                return value
+        for value in data.values():
+            found = _extract_list(value, keys)
+            if found:
+                return found
     return []
+
+
+def _first_string_value(data: dict[str, Any], candidate_keys: list[str]) -> str:
+    for key in candidate_keys:
+        value = data.get(key)
+        if value:
+            return str(value)
+    return ""
 
 
 def _extract_mapping(data: Any, keys: list[str]) -> dict[str, Any]:
@@ -202,25 +213,26 @@ def build_snapshot(client: BitjitaClient, claim_id: str) -> dict[str, Any]:
 
     snapshot_players: list[dict[str, Any]] = []
     for raw in players_raw:
-        player_obj = raw.get("player") if isinstance(raw, dict) and isinstance(raw.get("player"), dict) else {}
-        player_id = str(
-            raw.get("id")
-            or raw.get("player_id")
-            or raw.get("uuid")
-            or player_obj.get("id")
-            or player_obj.get("player_id")
-            or player_obj.get("uuid")
-            or ""
+        if not isinstance(raw, dict):
+            continue
+
+        player_obj = raw.get("player") if isinstance(raw.get("player"), dict) else {}
+        player_id = _first_string_value(
+            raw,
+            ["id", "player_id", "playerId", "character_id", "characterId", "uuid"],
+        ) or _first_string_value(
+            player_obj,
+            ["id", "player_id", "playerId", "character_id", "characterId", "uuid"],
         )
         if not player_id:
             continue
-        name = str(
-            raw.get("name")
-            or raw.get("username")
-            or player_obj.get("name")
-            or player_obj.get("username")
-            or player_id
-        )
+        name = _first_string_value(
+            raw,
+            ["name", "username", "display_name", "displayName"],
+        ) or _first_string_value(
+            player_obj,
+            ["name", "username", "display_name", "displayName"],
+        ) or player_id
         professions = client.get_player_professions(player_id)
         tools = client.get_player_tools(player_id)
         snapshot_players.append(
