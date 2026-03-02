@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -79,7 +80,8 @@ class BitjitaClient:
                 return json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
-            raise RuntimeError(f"HTTP {exc.code} for {url}: {body}") from exc
+            details = _format_http_error_details(body)
+            raise RuntimeError(f"HTTP {exc.code} for {url}: {details}") from exc
         except urllib.error.URLError as exc:
             raise RuntimeError(f"Network error for {url}: {exc.reason}") from exc
 
@@ -149,6 +151,24 @@ def _extract_mapping(data: Any, keys: list[str]) -> dict[str, Any]:
             if isinstance(value, dict):
                 return value
     return {}
+
+
+def _format_http_error_details(body: str) -> str:
+    compact = " ".join(body.split())
+    cloudflare_code = re.search(r"Error\s*(\d{4})", compact, re.IGNORECASE)
+
+    if "cloudflare" in compact.casefold() and cloudflare_code:
+        return (
+            "Access denied by Cloudflare "
+            f"(Error {cloudflare_code.group(1)}). "
+            "The API host is blocking this environment's request signature/IP. "
+            "Use an allowlisted network or valid API gateway/token from the site owner."
+        )
+
+    snippet = compact[:400]
+    if len(compact) > 400:
+        snippet += "..."
+    return snippet or "No response body"
 
 
 def build_snapshot(client: BitjitaClient, claim_id: str) -> dict[str, Any]:
