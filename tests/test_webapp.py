@@ -10,10 +10,6 @@ class WebAppTests(unittest.TestCase):
             build_tracker_response({})
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class ServerBindTests(unittest.TestCase):
     def test_try_bind_falls_back_on_permission_error(self):
         first = PermissionError(13, "forbidden")
@@ -43,3 +39,7 @@ class ServerBindTests(unittest.TestCase):
 
         client = build_snapshot_mock.call_args[0][0]
         self.assertEqual(client.app_identifier, "BitJita (xcausxn)")
+
+
+if __name__ == "__main__":
+    unittest.main()

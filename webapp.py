@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import errno
 import json
 from collections.abc import Iterable
 from http import HTTPStatus
@@ -102,7 +103,7 @@ def _try_bind_server(host: str, port_candidates: Iterable[int]) -> tuple[Threadi
         except PermissionError as exc:
             last_error = exc
         except OSError as exc:
-            if getattr(exc, "winerror", None) in {10013, 10048}:
+            if getattr(exc, "winerror", None) in {10013, 10048} or exc.errno == errno.EADDRINUSE:
                 last_error = exc
                 continue
             raise
